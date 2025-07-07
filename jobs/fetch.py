@@ -75,7 +75,8 @@ class LiveFeedToSheets:
             # Make sheet public if it was just created
             if sheet_created:
                 self.make_sheet_public()
-                self.print_public_urls()
+
+            self.print_public_urls()
             
         except Exception as e:
             print(f"Error creating/getting sheet: {e}")
@@ -171,13 +172,8 @@ class LiveFeedToSheets:
                 "running_position", "delta", "is_on_track", "is_on_dvp"
             ]
             
-            # Clear existing data
-            leaderboard_ws.clear()
-            
-            # Add headers
-            leaderboard_ws.append_row(headers)
-            
-            # Process vehicle data
+            # Prepare all rows (headers + data)
+            all_rows = [headers]
             for vehicle in vehicles:
                 row_data = [
                     vehicle.get("last_lap_time", ""),
@@ -191,14 +187,22 @@ class LiveFeedToSheets:
                     vehicle.get("is_on_track", ""),
                     vehicle.get("is_on_dvp", "")
                 ]
-                leaderboard_ws.append_row(row_data)
+                all_rows.append(row_data)
             
-            print(f"Updated leaderboard with {len(vehicles)} vehicles")
+            # Clear existing data
+            leaderboard_ws.clear()
+            
+            # Batch update all rows at once
+            cell_range = f"A1:J{len(all_rows)}"
+            # Fix for deprecation warning: pass values first, then range_name
+            leaderboard_ws.update(all_rows, cell_range)
+            
+            print(f"Updated leaderboard with {len(vehicles)} vehicles (batched update)")
             
         except Exception as e:
             print(f"Error updating leaderboard: {e}")
             raise
-    
+
     def update_race_metadata(self, data):
         """Update the race metadata worksheet"""
         try:
@@ -211,13 +215,7 @@ class LiveFeedToSheets:
                 "track_id", "track_name"
             ]
             
-            # Clear existing data
-            metadata_ws.clear()
-            
-            # Add headers
-            metadata_ws.append_row(headers)
-            
-            # Add race metadata
+            # Prepare metadata row
             metadata_row = [
                 data.get("lap_number", ""),
                 data.get("flag_state", ""),
@@ -231,8 +229,13 @@ class LiveFeedToSheets:
                 data.get("track_name", "")
             ]
             
-            metadata_ws.append_row(metadata_row)
-            print("Updated race metadata")
+            # Clear existing data
+            metadata_ws.clear()
+            
+            # Batch update headers and metadata row at once
+            # Fix for deprecation warning: pass values first, then range_name
+            metadata_ws.update([headers, metadata_row], "A1:J2")
+            print("Updated race metadata (batched update)")
             
         except Exception as e:
             print(f"Error updating race metadata: {e}")
