@@ -110,8 +110,8 @@
 
 /* Leaderboard styles */
 .leaderboard-container {
-  width: 100%;
-  padding: 20px;
+  width: 100vw;
+  padding: 0;
   box-sizing: border-box;
 }
 
@@ -120,6 +120,7 @@
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid #333;
+  width: 100vw;
 }
 
 .leaderboard-header {
@@ -130,21 +131,23 @@
 
 .grid-header {
   display: grid;
-  grid-template-columns: 100px 100px 180px minmax(400px, 2fr) 160px 160px 120px;
-  gap: 16px;
+  grid-template-columns: 1fr 1fr 1.5fr 3fr 1.2fr 1.2fr 1fr;
+  gap: 1.5vw;
   align-items: center;
   font-size: 14px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.9);
+  width: 100vw;
 }
 
 .grid-row {
   display: grid;
-  grid-template-columns: 100px 100px 180px minmax(400px, 2fr) 160px 160px 120px;
-  gap: 16px;
+  grid-template-columns: 1fr 1fr 1.5fr 3fr 1.2fr 1.2fr 1fr;
+  gap: 1.5vw;
   align-items: center;
-  padding: 16px 20px;
+  padding: 1.2vw 2vw;
   border-bottom: 1px solid #333;
+  width: 100vw;
 }
 
 /* Position styles */
