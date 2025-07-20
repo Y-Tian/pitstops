@@ -23,7 +23,7 @@ const RaceLeaderboard = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Google Sheets CSV endpoints
-  const R2_ENDPOINT = import.meta.env.R2_ENDPOINT;
+  const R2_ENDPOINT = import.meta.env.VITE_R2_ENDPOINT;
   const RACE_METADATA_URL = `${R2_ENDPOINT}/race_metadata.csv`;
   const LEADERBOARD_URL = `${R2_ENDPOINT}/leaderboard.csv`;
 
