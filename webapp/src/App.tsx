@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Trophy, Flag, Car, Clock, AlertCircle } from "lucide-react";
+import "./styles/RaceLeaderboard.css";
 
 const RaceLeaderboard = () => {
   type Driver = {
@@ -13,11 +14,9 @@ const RaceLeaderboard = () => {
     delta: string;
     is_on_dvp: string;
     is_on_track: string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [raceData, setRaceData] = useState<any>(null);
   const [leaderboardData, setLeaderboardData] = useState<Driver[]>([]);
   const [previousPositions, setPreviousPositions] = useState<{
@@ -103,14 +102,6 @@ const RaceLeaderboard = () => {
     return "→";
   };
 
-  const getPositionClass = (position: number) => {
-    if (position === 1) return "position-1";
-    if (position === 2) return "position-2";
-    if (position === 3) return "position-3";
-    if (position <= 10) return "position-top10";
-    return "";
-  };
-
   const getDeltaClass = (delta: string) => {
     const deltaNum = parseFloat(delta);
     if (deltaNum === 0) return "delta-leader";
@@ -169,7 +160,7 @@ const RaceLeaderboard = () => {
     // Update data every 10 seconds
     const interval = setInterval(loadData, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [LEADERBOARD_URL, RACE_METADATA_URL, fetchCSVData, leaderboardData]);
 
   const formatTime = (timeString: string) => {
     return parseFloat(timeString).toFixed(3);
@@ -183,38 +174,10 @@ const RaceLeaderboard = () => {
 
   if (initialLoading) {
     return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100vh",
-          backgroundColor: "#0a0a0a",
-          color: "white",
-          fontFamily: "system-ui, -apple-system, sans-serif",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "20px",
-          }}
-        >
-          <div
-            style={{
-              width: "40px",
-              height: "40px",
-              border: "4px solid #333",
-              borderTop: "4px solid #fff",
-              borderRadius: "50%",
-              animation: "spin 1s linear infinite",
-            }}
-          ></div>
-          <div style={{ fontSize: "18px", fontWeight: "500" }}>
-            Loading race data...
-          </div>
+      <div className="loading-container">
+        <div className="loading-content">
+          <div className="loading-spinner"></div>
+          <div>Loading race data...</div>
         </div>
       </div>
     );
@@ -222,31 +185,11 @@ const RaceLeaderboard = () => {
 
   if (error) {
     return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100vh",
-          backgroundColor: "#0a0a0a",
-          color: "white",
-          fontFamily: "system-ui, -apple-system, sans-serif",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "20px",
-            textAlign: "center",
-          }}
-        >
+      <div className="error-container">
+        <div className="error-content">
           <AlertCircle size={48} color="#ef4444" />
-          <div style={{ fontSize: "24px", fontWeight: "600" }}>
-            Error Loading Data
-          </div>
-          <div style={{ fontSize: "16px", color: "#888" }}>{error}</div>
+          <div className="error-title">Error Loading Data</div>
+          <div className="error-message">{error}</div>
         </div>
       </div>
     );
@@ -254,20 +197,8 @@ const RaceLeaderboard = () => {
 
   if (!raceData) {
     return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100vh",
-          backgroundColor: "#0a0a0a",
-          color: "white",
-          fontFamily: "system-ui, -apple-system, sans-serif",
-        }}
-      >
-        <div style={{ fontSize: "18px", fontWeight: "500" }}>
-          No race data available
-        </div>
+      <div className="loading-container">
+        <div>No race data available</div>
       </div>
     );
   }
@@ -275,185 +206,34 @@ const RaceLeaderboard = () => {
   const flagInfo = getFlagState(raceData.flag_state);
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "#0a0a0a",
-        color: "white",
-        fontFamily: "system-ui, -apple-system, sans-serif",
-      }}
-    >
-      <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-        
-        .position-row {
-          transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .position-1 {
-          background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
-          border-left: 4px solid #ffd700;
-        }
-        
-        .position-2 {
-          background: linear-gradient(135deg, #c0c0c0 0%, #e5e5e5 100%);
-          border-left: 4px solid #c0c0c0;
-        }
-        
-        .position-3 {
-          background: linear-gradient(135deg, #cd7f32 0%, #daa520 100%);
-          border-left: 4px solid #cd7f32;
-        }
-        
-        .position-top10 {
-          background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-          border-left: 4px solid #3b82f6;
-        }
-        
-        .change-up {
-          color: #22c55e;
-          font-weight: 600;
-        }
-        
-        .change-down {
-          color: #ef4444;
-          font-weight: 600;
-        }
-        
-        .change-none {
-          color: #6b7280;
-        }
-        
-        .delta-leader {
-          color: #ffd700;
-          font-weight: 600;
-        }
-        
-        .delta-behind {
-          color: #ef4444;
-        }
-        
-        .delta-ahead {
-          color: #22c55e;
-        }
-        
-        .tooltip {
-          position: absolute;
-          bottom: 100%;
-          left: 50%;
-          transform: translateX(-50%);
-          background: rgba(0, 0, 0, 0.95);
-          border: 1px solid #333;
-          border-radius: 8px;
-          padding: 16px;
-          min-width: 300px;
-          opacity: 0;
-          pointer-events: none;
-          transition: opacity 0.3s ease;
-          z-index: 1000;
-          margin-bottom: 8px;
-        }
-        
-        .driver-name:hover .tooltip {
-          opacity: 1;
-        }
-      `}</style>
-
+    <div className="race-leaderboard">
       {/* Header */}
-      <div
-        style={{
-          background: "linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)",
-          padding: "20px 0",
-          borderBottom: "2px solid #3b82f6",
-        }}
-      >
-        <div
-          style={{
-            margin: "0 auto",
-            padding: "0 20px",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "16px",
-              }}
-            >
+      <div className="header">
+        <div className="header-container">
+          <div className="header-content">
+            <div className="title-section">
               <Trophy size={32} color="#ffd700" />
               <div>
-                <h1
-                  style={{
-                    fontSize: "28px",
-                    fontWeight: "700",
-                    margin: 0,
-                    color: "white",
-                  }}
-                >
-                  {raceData.run_name}
-                </h1>
-                <p
-                  style={{
-                    fontSize: "16px",
-                    margin: 0,
-                    color: "rgba(255, 255, 255, 0.8)",
-                  }}
-                >
+                <h1 className="race-title">{raceData.run_name}</h1>
+                <p className="race-subtitle">
                   Series {raceData.series_id} • {raceData.track_name}
                 </p>
               </div>
             </div>
-
-            <div
-              style={{
-                display: "flex",
-                gap: "24px",
-                alignItems: "center",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                }}
-              >
+            <div className="race-info">
+              <div className="info-item">
                 <Flag size={20} />
                 <span>
                   {flagInfo.emoji} {flagInfo.text}
                 </span>
               </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                }}
-              >
+              <div className="info-item">
                 <Car size={20} />
                 <span>
                   Lap {raceData.lap_number} / {raceData.laps_in_race}
                 </span>
               </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                }}
-              >
+              <div className="info-item">
                 <Clock size={20} />
                 <span>
                   {new Date(raceData.time_of_day_os).toLocaleTimeString()}
@@ -463,42 +243,12 @@ const RaceLeaderboard = () => {
           </div>
         </div>
       </div>
-
       {/* Leaderboard */}
-      <div
-        style={{
-          margin: "0 auto",
-          padding: "20px",
-        }}
-      >
-        <div
-          style={{
-            backgroundColor: "#1a1a1a",
-            borderRadius: "12px",
-            overflow: "hidden",
-            border: "1px solid #333",
-          }}
-        >
+      <div className="leaderboard-container">
+        <div className="leaderboard">
           {/* Header */}
-          <div
-            style={{
-              background: "linear-gradient(135deg, #374151 0%, #4b5563 100%)",
-              padding: "16px 20px",
-              borderBottom: "1px solid #333",
-            }}
-          >
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "80px 80px 160px minmax(300px, 1fr) 140px 140px 100px",
-                gap: "16px",
-                alignItems: "center",
-                fontSize: "14px",
-                fontWeight: "600",
-                color: "rgba(255, 255, 255, 0.9)",
-              }}
-            >
+          <div className="leaderboard-header">
+            <div className="grid-header">
               <div>POS</div>
               <div>CHG</div>
               <div>CAR</div>
@@ -508,7 +258,6 @@ const RaceLeaderboard = () => {
               <div>STATUS</div>
             </div>
           </div>
-
           {/* Leaderboard rows */}
           <div>
             {leaderboardData.map((driver) => {
@@ -519,47 +268,28 @@ const RaceLeaderboard = () => {
               const changeClass = getPositionChangeClass(positionChange);
               const changeIcon = getPositionChangeIcon(positionChange);
               const position = parseInt(driver.running_position);
-              const positionClass = getPositionClass(position);
               const deltaClass = getDeltaClass(driver.delta);
-
+              // Determine color for position
+              const positionColorClass =
+                position <= 3 ? "position-top3" : "position-other";
+              // Determine background for row
+              let rowBgClass = "";
+              if (position === 1) rowBgClass = "position-1";
+              else if (position === 2) rowBgClass = "position-2";
+              else if (position === 3) rowBgClass = "position-3";
+              else if (position <= 10) rowBgClass = "position-top10";
               return (
                 <div
                   key={driver.driver_id}
-                  className={`position-row ${positionClass}`}
-                  style={{
-                    padding: "16px 20px",
-                    borderBottom: "1px solid #333",
-                    backgroundColor:
-                      position <= 3
-                        ? "rgba(255, 255, 255, 0.1)"
-                        : position <= 10
-                          ? "rgba(59, 130, 246, 0.1)"
-                          : "transparent",
-                  }}
+                  className={`position-row ${rowBgClass}`}
                 >
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns:
-                        "80px 80px 160px minmax(300px, 1fr) 140px 140px 100px",
-                      gap: "16px",
-                      alignItems: "center",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: "20px",
-                        fontWeight: "700",
-                        color: position <= 3 ? "#000" : "#fff",
-                      }}
-                    >
+                  <div className="grid-row">
+                    <div className={`position ${positionColorClass}`}>
                       {driver.running_position}
                     </div>
-
                     <div
                       className={changeClass}
                       style={{
-                        fontSize: "14px",
                         display: "flex",
                         alignItems: "center",
                         gap: "4px",
@@ -568,136 +298,62 @@ const RaceLeaderboard = () => {
                       {changeIcon}
                       {positionChange !== 0 && Math.abs(positionChange)}
                     </div>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: "40px",
-                          height: "40px",
-                          backgroundColor: "#333",
-                          borderRadius: "8px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: "20px",
-                        }}
-                      >
+                    <div className="car-info">
+                      <div className="manufacturer-logo">
                         {getManufacturerLogo(driver.vehicle_manufacturer)}
                       </div>
                       <div>
-                        <div
-                          style={{
-                            fontSize: "16px",
-                            fontWeight: "600",
-                            color: "#fff",
-                          }}
-                        >
+                        <div className="car-number">
                           {driver.vehicle_number}
                         </div>
-                        <div
-                          style={{
-                            fontSize: "12px",
-                            color: "#888",
-                          }}
-                        >
+                        <div className="manufacturer-name">
                           {driver.vehicle_manufacturer}
                         </div>
                       </div>
                     </div>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        position: "relative",
-                      }}
-                    >
-                      <div
-                        className="driver-name"
-                        style={{
-                          fontSize: "16px",
-                          fontWeight: "500",
-                          color: "#fff",
-                          cursor: "pointer",
-                        }}
-                      >
+                    <div className="driver-info">
+                      <div className="driver-name">
                         {driver.full_name}
                         <div className="tooltip">
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              marginBottom: "12px",
-                              paddingBottom: "8px",
-                              borderBottom: "1px solid #333",
-                            }}
-                          >
-                            <span
-                              style={{ fontSize: "16px", fontWeight: "600" }}
-                            >
+                          <div className="tooltip-header">
+                            <span className="tooltip-name">
                               {driver.full_name}
                             </span>
-                            <span style={{ fontSize: "14px", color: "#888" }}>
+                            <span className="tooltip-number">
                               #{driver.vehicle_number}
                             </span>
                           </div>
-
-                          <div
-                            style={{
-                              display: "grid",
-                              gridTemplateColumns: "1fr 1fr",
-                              gap: "8px",
-                              fontSize: "14px",
-                            }}
-                          >
+                          <div className="tooltip-grid">
                             <div>
-                              <span style={{ color: "#888" }}>
+                              <span className="tooltip-label">
                                 Starting Position:
                               </span>
-                              <span
-                                style={{ color: "#fff", marginLeft: "8px" }}
-                              >
+                              <span className="tooltip-value">
                                 {driver.starting_position}
                               </span>
                             </div>
                             <div>
-                              <span style={{ color: "#888" }}>
+                              <span className="tooltip-label">
                                 Current Position:
                               </span>
-                              <span
-                                style={{ color: "#fff", marginLeft: "8px" }}
-                              >
+                              <span className="tooltip-value">
                                 {driver.running_position}
                               </span>
                             </div>
                             <div>
-                              <span style={{ color: "#888" }}>Last Lap:</span>
+                              <span className="tooltip-label">Last Lap:</span>
                               <span
-                                style={{
-                                  color: "#fff",
-                                  marginLeft: "8px",
-                                  fontFamily: "monospace",
-                                }}
+                                className="tooltip-value"
+                                style={{ fontFamily: "monospace" }}
                               >
                                 {formatTime(driver.last_lap_time)}s
                               </span>
                             </div>
                             <div>
-                              <span style={{ color: "#888" }}>Delta:</span>
+                              <span className="tooltip-label">Delta:</span>
                               <span
-                                className={deltaClass}
-                                style={{
-                                  marginLeft: "8px",
-                                  fontFamily: "monospace",
-                                }}
+                                className={`tooltip-value ${deltaClass}`}
+                                style={{ fontFamily: "monospace" }}
                               >
                                 {formatDelta(driver.delta)}
                               </span>
@@ -705,57 +361,19 @@ const RaceLeaderboard = () => {
                           </div>
                         </div>
                       </div>
-
                       {driver.is_on_dvp === "TRUE" && (
-                        <span
-                          style={{
-                            backgroundColor: "#dc2626",
-                            color: "white",
-                            padding: "2px 8px",
-                            borderRadius: "4px",
-                            fontSize: "12px",
-                            fontWeight: "600",
-                          }}
-                        >
-                          DVP
-                        </span>
+                        <span className="dvp-tag">DVP</span>
                       )}
                     </div>
-
-                    <div
-                      style={{
-                        fontSize: "16px",
-                        fontFamily: "monospace",
-                        color: "#fff",
-                      }}
-                    >
+                    <div className="lap-time">
                       {formatTime(driver.last_lap_time)}s
                     </div>
-
-                    <div
-                      className={deltaClass}
-                      style={{
-                        fontSize: "16px",
-                        fontFamily: "monospace",
-                        fontWeight: "600",
-                      }}
-                    >
+                    <div className={`delta ${deltaClass}`}>
                       {formatDelta(driver.delta)}
                     </div>
-
                     <div>
                       <span
-                        style={{
-                          padding: "4px 8px",
-                          borderRadius: "4px",
-                          fontSize: "12px",
-                          fontWeight: "600",
-                          backgroundColor:
-                            driver.is_on_track === "TRUE"
-                              ? "#22c55e"
-                              : "#ef4444",
-                          color: "white",
-                        }}
+                        className={`track-status ${driver.is_on_track === "TRUE" ? "status-on" : "status-off"}`}
                       >
                         {driver.is_on_track === "TRUE" ? "ON" : "OFF"}
                       </span>
