@@ -23,8 +23,9 @@ const RaceLeaderboard = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Google Sheets CSV endpoints
-  const RACE_METADATA_URL = 'https://pub-b7783bd311854f5d831d46eaa8eb5a93.r2.dev/race_metadata.csv';
-  const LEADERBOARD_URL = 'https://pub-b7783bd311854f5d831d46eaa8eb5a93.r2.dev/leaderboard.csv';
+  const R2_ENDPOINT = import.meta.env.R2_ENDPOINT;
+  const RACE_METADATA_URL = `${R2_ENDPOINT}/race_metadata.csv`;
+  const LEADERBOARD_URL = `${R2_ENDPOINT}/leaderboard.csv`;
 
   const parseCSV = (csvText: string) => {
     const lines = csvText.trim().split('\n');
