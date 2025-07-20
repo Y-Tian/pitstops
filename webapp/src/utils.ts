@@ -11,14 +11,11 @@ export const parseCSV = (csvText: string) => {
   });
 };
 
-export const getManufacturerLogo = (manufacturer: string | number) => {
-  const logos: Record<"Chv" | "Frd" | "Tyt", string> = {
-    Chv: "🚕",
-    Frd: "🚗",
-    Tyt: "🚙",
-  };
-  const key = String(manufacturer) as keyof typeof logos;
-  return logos[key] ?? "🏁";
+export const getManufacturerLogoUrl = (
+  seriesId: string | number,
+  vehicleNumber: string | number,
+) => {
+  return `https://cf.nascar.com/data/images/carbadges/${seriesId}/${vehicleNumber}.png`;
 };
 
 export const getPositionChange = (

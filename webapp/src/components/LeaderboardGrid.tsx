@@ -4,11 +4,13 @@ import { type Driver } from "../types";
 interface LeaderboardGridProps {
   leaderboardData: Driver[];
   previousPositions: { [key: string]: number };
+  seriesId: string;
 }
 
 const LeaderboardGrid = ({
   leaderboardData,
   previousPositions,
+  seriesId,
 }: LeaderboardGridProps) => (
   <div className="leaderboard-container">
     <div className="leaderboard">
@@ -29,6 +31,7 @@ const LeaderboardGrid = ({
             key={driver.driver_id}
             driver={driver}
             previousPosition={previousPositions[driver.driver_id]}
+            seriesId={seriesId}
           />
         ))}
       </div>

@@ -120,6 +120,7 @@ const RaceLeaderboard = () => {
       <LeaderboardGrid
         leaderboardData={leaderboardData}
         previousPositions={previousPositions}
+        seriesId={String(raceData.series_id)}
       />
     </div>
   );

@@ -1,6 +1,6 @@
 import { type Driver } from "../types";
 import {
-  getManufacturerLogo,
+  getManufacturerLogoUrl,
   getPositionChange,
   getPositionChangeClass,
   getPositionChangeIcon,
@@ -12,9 +12,10 @@ import {
 interface DriverRowProps {
   driver: Driver;
   previousPosition?: number;
+  seriesId: string;
 }
 
-const DriverRow = ({ driver, previousPosition }: DriverRowProps) => {
+const DriverRow = ({ driver, previousPosition, seriesId }: DriverRowProps) => {
   const positionChange = getPositionChange(
     driver.driver_id,
     parseInt(driver.running_position),
@@ -46,10 +47,13 @@ const DriverRow = ({ driver, previousPosition }: DriverRowProps) => {
         </div>
         <div className="car-info">
           <div className="manufacturer-logo">
-            {getManufacturerLogo(driver.vehicle_manufacturer)}
+            <img
+              src={getManufacturerLogoUrl(seriesId, driver.vehicle_number)}
+              alt="Car Badge"
+              style={{ width: 40, height: 40, objectFit: "contain" }}
+            />
           </div>
           <div>
-            <div className="car-number">{driver.vehicle_number}</div>
             <div className="manufacturer-name">
               {driver.vehicle_manufacturer === "Tyt"
                 ? "Toyota"
