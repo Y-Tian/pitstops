@@ -268,22 +268,22 @@
 }
 
 .position-1 {
-  background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+  background: linear-gradient(135deg, #ffd700 0%, #b8a813 100%);
   border-left: 4px solid #ffd700;
 }
 
 .position-2 {
-  background: linear-gradient(135deg, #c0c0c0 0%, #e5e5e5 100%);
+  background: linear-gradient(135deg, #c0c0c0 0%, #b1a6a6 100%);
   border-left: 4px solid #c0c0c0;
 }
 
 .position-3 {
-  background: linear-gradient(135deg, #cd7f32 0%, #daa520 100%);
+  background: linear-gradient(135deg, #cd7f32 0%, #9a7a29 100%);
   border-left: 4px solid #cd7f32;
 }
 
 .position-top10 {
-  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  background: linear-gradient(135deg, #1e3a8a 0%, #2a5499 100%);
   border-left: 4px solid #3b82f6;
 }
 
@@ -304,7 +304,7 @@
 
 /* Delta indicators */
 .delta-leader {
-  color: #2bbc3e;
+  color: #37f850;
   font-weight: 600;
 }
 
