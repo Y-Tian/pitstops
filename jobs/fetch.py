@@ -2,47 +2,50 @@ import requests
 import json
 import sys
 import os
-from google.oauth2.service_account import Credentials
-import gspread
+import csv
+import io
 from datetime import datetime
+import base64
+import hashlib
 
-class LiveFeedToSheets:
-    def __init__(self, credentials_path, live_feed_url, sheet_name):
+class LiveFeedToR2:
+    def __init__(self, live_feed_url, r2_config):
         """
-        Initialize the LiveFeedToSheets class
+        Initialize the LiveFeedToR2 class
         
         Args:
-            credentials_path (str): Path to your Google Service Account JSON file
             live_feed_url (str): URL of the live feed endpoint
+            r2_config (dict): R2 configuration with keys: account_id, api_token, bucket
         """
         self.live_feed_url = live_feed_url
-        self.credentials_path = credentials_path
-        self.sheet_name = sheet_name
-        self.gc = None
-        self.sheet = None
-        self.setup_google_sheets()
+        self.r2_config = r2_config
+        self.base_url = f"https://api.cloudflare.com/client/v4/accounts/{r2_config['account_id']}/r2/buckets/{r2_config['bucket']}/objects"
+        self.headers = {
+            'Authorization': f"Bearer {r2_config['api_token']}",
+            'Content-Type': 'application/octet-stream'
+        }
+        self.verify_connection()
     
-    def setup_google_sheets(self):
-        """Setup Google Sheets connection"""
+    def verify_connection(self):
+        """Verify R2 connection and permissions"""
         try:
-            # Define the scope
-            scope = [
-                "https://spreadsheets.google.com/feeds",
-                "https://www.googleapis.com/auth/drive"
-            ]
+            # Test connection by attempting to list bucket (this will fail gracefully if no permissions)
+            test_url = f"https://api.cloudflare.com/client/v4/accounts/{self.r2_config['account_id']}/r2/buckets"
+            test_headers = {
+                'Authorization': f"Bearer {self.r2_config['api_token']}",
+                'Content-Type': 'application/json'
+            }
             
-            # Load credentials
-            credentials = Credentials.from_service_account_file(
-                self.credentials_path, scopes=scope
-            )
-            
-            # Initialize the client
-            self.gc = gspread.authorize(credentials)
-            print("Google Sheets connection established")
+            response = requests.get(test_url, headers=test_headers, timeout=10)
+            if response.status_code == 200:
+                print("R2 API connection verified successfully")
+            else:
+                print(f"R2 API connection warning: {response.status_code} - {response.text}")
+                print("Proceeding anyway - this might be due to limited permissions")
             
         except Exception as e:
-            print(f"Error setting up Google Sheets: {e}")
-            raise
+            print(f"Warning: Could not verify R2 connection: {e}")
+            print("Proceeding anyway...")
     
     def fetch_live_feed(self):
         """Fetch data from the live feed endpoint"""
@@ -54,117 +57,65 @@ class LiveFeedToSheets:
             print(f"Error fetching live feed: {e}")
             return None
     
-    def create_or_get_sheet(self, data):
-        """Create or get the Google Sheet based on race data"""
+    def create_csv_string(self, headers, rows):
+        """Create CSV string from headers and rows"""
         try:
-            sheet_created = False
+            output = io.StringIO()
+            writer = csv.writer(output)
             
-            try:
-                # Try to open existing sheet
-                self.sheet = self.gc.open(self.sheet_name)
-                print(f"Opened existing sheet: {self.sheet_name}")
-            except gspread.SpreadsheetNotFound:
-                # Create new sheet if it doesn't exist
-                self.sheet = self.gc.create(self.sheet_name)
-                sheet_created = True
-                print(f"Created new sheet: {self.sheet_name}")
+            # Write headers
+            writer.writerow(headers)
             
-            # Ensure both tabs exist
-            self.setup_worksheets()
+            # Write data rows
+            for row in rows:
+                writer.writerow(row)
             
-            # Make sheet public if it was just created
-            if sheet_created:
-                self.make_sheet_public()
-
-            self.print_public_urls()
+            return output.getvalue()
             
         except Exception as e:
-            print(f"Error creating/getting sheet: {e}")
-            raise
-    
-    def setup_worksheets(self):
-        """Setup the leaderboard and race metadata worksheets"""
-        try:
-            # Get or create leaderboard worksheet
-            try:
-                leaderboard_ws = self.sheet.worksheet("leaderboard")
-            except gspread.WorksheetNotFound:
-                leaderboard_ws = self.sheet.add_worksheet(title="leaderboard", rows=50, cols=10)
-                print("Created leaderboard worksheet")
-            
-            # Get or create race metadata worksheet
-            try:
-                metadata_ws = self.sheet.worksheet("race_metadata")
-            except gspread.WorksheetNotFound:
-                metadata_ws = self.sheet.add_worksheet(title="race_metadata", rows=10, cols=10)
-                print("Created race metadata worksheet")
-            
-            # Delete the default "Sheet1" if it exists
-            try:
-                default_sheet = self.sheet.worksheet("Sheet1")
-                self.sheet.del_worksheet(default_sheet)
-                print("Deleted default Sheet1")
-            except gspread.WorksheetNotFound:
-                pass
-                
-        except Exception as e:
-            print(f"Error setting up worksheets: {e}")
-            raise
-    
-    def make_sheet_public(self):
-        """Make the Google Sheet publicly accessible"""
-        try:
-            # Share the sheet with anyone who has the link (view only)
-            self.sheet.share(None, perm_type='anyone', role='reader')
-            print("Sheet made publicly accessible")
-            
-        except Exception as e:
-            print(f"Error making sheet public: {e}")
-            # Don't raise the error - this is not critical for functionality
-    
-    def print_public_urls(self):
-        """Print the public URLs for accessing the sheet data"""
-        try:
-            sheet_id = self.sheet.id
-            
-            # Get worksheet GIDs for proper CSV export URLs
-            leaderboard_gid = self.get_worksheet_gid("leaderboard")
-            metadata_gid = self.get_worksheet_gid("race_metadata")
-            
-            # Public URLs for CSV export
-            leaderboard_csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={leaderboard_gid}"
-            metadata_csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={metadata_gid}"
-            
-            # Public URL for the full sheet
-            sheet_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/edit?usp=sharing"
-            
-            print("\n" + "="*60)
-            print("PUBLIC URLS FOR FRONTEND ACCESS:")
-            print("="*60)
-            print(f"Full Sheet URL: {sheet_url}")
-            print(f"Leaderboard CSV: {leaderboard_csv_url}")
-            print(f"Race Metadata CSV: {metadata_csv_url}")
-            print("="*60)
-            print("Note: Save these URLs for your frontend application")
-            print("="*60 + "\n")
-            
-        except Exception as e:
-            print(f"Error generating public URLs: {e}")
-    
-    def get_worksheet_gid(self, worksheet_name):
-        """Get the GID (worksheet ID) for a specific worksheet"""
-        try:
-            worksheet = self.sheet.worksheet(worksheet_name)
-            return worksheet.id
-        except Exception as e:
-            print(f"Error getting worksheet GID for {worksheet_name}: {e}")
+            print(f"Error creating CSV string: {e}")
             return None
     
-    def update_leaderboard(self, vehicles):
-        """Update the leaderboard worksheet with vehicle data"""
+    def upload_to_r2(self, filename, content, content_type='text/csv'):
+        """Upload content to R2 using Cloudflare API"""
         try:
-            leaderboard_ws = self.sheet.worksheet("leaderboard")
+            url = f"{self.base_url}/{filename}"
             
+            # Prepare headers for this specific upload
+            upload_headers = self.headers.copy()
+            upload_headers.update({
+                'Content-Type': content_type,
+                'Cache-Control': 'public, max-age=30'  # 30 second cache for frequent updates
+            })
+            
+            # Convert content to bytes if it's a string
+            if isinstance(content, str):
+                content_bytes = content.encode('utf-8')
+            else:
+                content_bytes = content
+            
+            # Upload to R2
+            response = requests.put(
+                url,
+                data=content_bytes,
+                headers=upload_headers,
+                timeout=60
+            )
+            
+            if response.status_code in [200, 201]:
+                print(f"Successfully uploaded {filename} to R2")
+                return True
+            else:
+                print(f"Error uploading {filename} to R2: {response.status_code} - {response.text}")
+                return False
+                
+        except Exception as e:
+            print(f"Error uploading {filename} to R2: {e}")
+            return False
+    
+    def create_leaderboard_csv(self, vehicles):
+        """Create leaderboard CSV content"""
+        try:
             # Define headers
             headers = [
                 "last_lap_time", "vehicle_manufacturer", "vehicle_number", 
@@ -172,8 +123,8 @@ class LiveFeedToSheets:
                 "running_position", "delta", "is_on_track", "is_on_dvp"
             ]
             
-            # Prepare all rows (headers + data)
-            all_rows = [headers]
+            # Prepare data rows
+            rows = []
             for vehicle in vehicles:
                 row_data = [
                     vehicle.get("last_lap_time", ""),
@@ -187,27 +138,17 @@ class LiveFeedToSheets:
                     vehicle.get("is_on_track", ""),
                     vehicle.get("is_on_dvp", "")
                 ]
-                all_rows.append(row_data)
+                rows.append(row_data)
             
-            # Clear existing data
-            leaderboard_ws.clear()
-            
-            # Batch update all rows at once
-            cell_range = f"A1:J{len(all_rows)}"
-            # Fix for deprecation warning: pass values first, then range_name
-            leaderboard_ws.update(all_rows, cell_range)
-            
-            print(f"Updated leaderboard with {len(vehicles)} vehicles (batched update)")
+            return self.create_csv_string(headers, rows)
             
         except Exception as e:
-            print(f"Error updating leaderboard: {e}")
-            raise
-
-    def update_race_metadata(self, data):
-        """Update the race metadata worksheet"""
+            print(f"Error creating leaderboard CSV: {e}")
+            return None
+    
+    def create_race_metadata_csv(self, data):
+        """Create race metadata CSV content"""
         try:
-            metadata_ws = self.sheet.worksheet("race_metadata")
-            
             # Define headers
             headers = [
                 "lap_number", "flag_state", "laps_in_race", "run_name", 
@@ -229,20 +170,80 @@ class LiveFeedToSheets:
                 data.get("track_name", "")
             ]
             
-            # Clear existing data
-            metadata_ws.clear()
-            
-            # Batch update headers and metadata row at once
-            # Fix for deprecation warning: pass values first, then range_name
-            metadata_ws.update([headers, metadata_row], "A1:J2")
-            print("Updated race metadata (batched update)")
+            return self.create_csv_string(headers, [metadata_row])
             
         except Exception as e:
-            print(f"Error updating race metadata: {e}")
-            raise
+            print(f"Error creating race metadata CSV: {e}")
+            return None
     
-    def update_sheets(self):
-        """Main method to fetch data and update sheets"""
+    def upload_manifest(self, timestamp):
+        """Upload a manifest file to track current version"""
+        try:
+            manifest = {
+                "last_updated": timestamp.isoformat(),
+                "version": int(timestamp.timestamp()),
+                "files": {
+                    "leaderboard": "leaderboard.csv",
+                    "race_metadata": "race_metadata.csv"
+                }
+            }
+            
+            manifest_content = json.dumps(manifest, indent=2)
+            
+            success = self.upload_to_r2('manifest.json', manifest_content, 'application/json')
+            
+            if success:
+                print("Uploaded manifest file")
+            
+            return success
+            
+        except Exception as e:
+            print(f"Error uploading manifest: {e}")
+            return False
+
+    
+    def print_public_urls(self):
+        """Print the public URLs for accessing the CSV files"""
+        try:
+            bucket_name = self.r2_config['bucket']
+            custom_domain = self.r2_config.get('custom_domain')
+            
+            if custom_domain:
+                base_url = f"https://{custom_domain}"
+            else:
+                # Use R2 public URL format (you'll need to configure public access)
+                account_id = self.r2_config['account_id']
+                base_url = f"https://pub-{account_id}.r2.dev/{bucket_name}"
+            
+            print("\n" + "="*60)
+            print("PUBLIC URLS FOR FRONTEND ACCESS:")
+            print("="*60)
+            print(f"Leaderboard CSV: {base_url}/leaderboard.csv")
+            print(f"Race Metadata CSV: {base_url}/race_metadata.csv")
+            print(f"Manifest JSON: {base_url}/manifest.json")
+            print("="*60)
+            print("Note: Ensure your R2 bucket has public access configured")
+            print("Or use signed URLs for private access")
+            print("="*60 + "\n")
+            
+        except Exception as e:
+            print(f"Error generating public URLs: {e}")
+    
+    def check_file_exists(self, filename):
+        """Check if a file exists in R2"""
+        try:
+            url = f"{self.base_url}/{filename}"
+            
+            # Use HEAD request to check if file exists
+            response = requests.head(url, headers=self.headers, timeout=10)
+            return response.status_code == 200
+            
+        except Exception as e:
+            print(f"Error checking if {filename} exists: {e}")
+            return False
+    
+    def update_r2(self):
+        """Main method to fetch data and update R2"""
         try:
             # Fetch live feed data
             print("Fetching live feed data...")
@@ -252,27 +253,44 @@ class LiveFeedToSheets:
                 print("No data received from live feed")
                 return False
             
-            # Create or get the sheet
-            self.create_or_get_sheet(data)
+            timestamp = datetime.now()
             
-            # Update leaderboard
+            # Create CSV content
+            leaderboard_csv = None
             if "vehicles" in data:
-                self.update_leaderboard(data["vehicles"])
+                leaderboard_csv = self.create_leaderboard_csv(data["vehicles"])
+                if not leaderboard_csv:
+                    print("Failed to create leaderboard CSV")
+                    return False
             
-            # Update race metadata
-            self.update_race_metadata(data)
+            metadata_csv = self.create_race_metadata_csv(data)
+            if not metadata_csv:
+                print("Failed to create race metadata CSV")
+                return False
             
-            print(f"Successfully updated sheets at {datetime.now()}")
+            # Upload current versions
+            success = True
+            if leaderboard_csv:
+                success &= self.upload_to_r2("leaderboard.csv", leaderboard_csv)
+            success &= self.upload_to_r2("race_metadata.csv", metadata_csv)
+            
+            # Upload manifest
+            self.upload_manifest(timestamp)
+            
+            # Print URLs for frontend access
+            self.print_public_urls()
+            
+            print(f"Successfully updated R2 at {timestamp}")
             return True
             
         except Exception as e:
-            print(f"Error in update_sheets: {e}")
+            print(f"Error in update_r2: {e}")
             return False
     
     def run_once(self):
         """Run a single update - idempotent for cron execution"""
         try:
-            success = self.update_sheets()
+            success = self.update_r2()
             if success:
                 print("Update completed successfully")
                 return 0  # Success exit code
@@ -285,22 +303,41 @@ class LiveFeedToSheets:
 
 
 def main():
-    """Main function to run the live feed to sheets updater"""
+    """Main function to run the live feed to R2 updater"""
     
-    # Configuration - can be set via environment variables or updated here
-    CREDENTIALS_PATH = os.getenv('GOOGLE_CREDENTIALS_PATH', 'pitstops-dev.json')
-    LIVE_FEED_URL = os.getenv('LIVE_FEED_URL', 'http://localhost:5000/live-feed')
-    GSHEET_NAME = os.getenv('GSHEET_NAME', 'live-feed-dev')
+    # Configuration - set via environment variables
+    LIVE_FEED_URL = os.getenv('LIVE_FEED_URL', 'https://cf.nascar.com/live/feeds/live-feed.json')
+    
+    # R2 Configuration using Cloudflare API
+    R2_CONFIG = {
+        'account_id': os.getenv('CLOUDFLARE_ACCOUNT_ID'),
+        'api_token': os.getenv('CLOUDFLARE_API_TOKEN'),
+        'bucket': os.getenv('R2_BUCKET_NAME', 'nascar-live-feed'),
+        'custom_domain': os.getenv('R2_CUSTOM_DOMAIN')  # Optional
+    }
     
     # Validate configuration
-    if not os.path.exists(CREDENTIALS_PATH):
-        print(f"Error: Credentials file not found at {CREDENTIALS_PATH}")
-        print("Set GOOGLE_CREDENTIALS_PATH environment variable or update the script")
+    required_vars = ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN']
+    missing_vars = [var for var in required_vars if not os.getenv(var)]
+    
+    if missing_vars:
+        print(f"Error: Missing required environment variables: {', '.join(missing_vars)}")
+        print("Set the following environment variables:")
+        print("- CLOUDFLARE_ACCOUNT_ID: Your Cloudflare account ID")
+        print("- CLOUDFLARE_API_TOKEN: Your Cloudflare API token with R2 permissions")
+        print("- R2_BUCKET_NAME: Your R2 bucket name (optional, defaults to 'nascar-live-feed')")
+        print("- R2_CUSTOM_DOMAIN: Custom domain for R2 (optional)")
+        print("\nTo create an API token:")
+        print("1. Go to https://dash.cloudflare.com/profile/api-tokens")
+        print("2. Click 'Create Token'")
+        print("3. Use 'Custom token' template")
+        print("4. Add permissions: Account - Cloudflare R2:Edit")
+        print("5. Add account resources: Include - Your Account")
         sys.exit(1)
     
     try:
         # Create instance and run once
-        updater = LiveFeedToSheets(CREDENTIALS_PATH, LIVE_FEED_URL, GSHEET_NAME)
+        updater = LiveFeedToR2(LIVE_FEED_URL, R2_CONFIG)
         exit_code = updater.run_once()
         sys.exit(exit_code)
         
