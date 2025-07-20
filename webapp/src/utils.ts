@@ -54,6 +54,6 @@ export const formatTime = (timeString: string) => {
 export const formatDelta = (delta: string) => {
   const deltaNum = parseFloat(delta);
   if (deltaNum === 0) return "Leader";
-  if (deltaNum < 0) return `-${Math.abs(Math.round(deltaNum))} lap`;
+  if (deltaNum < 0) return `-${Math.abs(Math.round(deltaNum))} lap(s)`;
   return `+${deltaNum.toFixed(1)}`;
 };
