@@ -1,7 +1,8 @@
 import { Trophy, Flag, Car, Clock } from "lucide-react";
+import type { RaceData } from "../data/RaceData";
 
 interface LeaderboardHeaderProps {
-  raceData: any;
+  raceData: RaceData;
 }
 
 const LeaderboardHeader = ({ raceData }: LeaderboardHeaderProps) => {

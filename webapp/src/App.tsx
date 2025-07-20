@@ -5,13 +5,14 @@ import LeaderboardHeader from "./components/LeaderboardHeader";
 import LeaderboardGrid from "./components/LeaderboardGrid";
 import type { Driver } from "./types";
 import { parseCSV } from "./utils";
+import type { RaceData } from "./data/RaceData";
 
 const R2_ENDPOINT = "https://pub-c40331d1ffaa483a8c55e70a0acd246f.r2.dev";
 const RACE_METADATA_URL = `${R2_ENDPOINT}/race_metadata.csv`;
 const LEADERBOARD_URL = `${R2_ENDPOINT}/leaderboard.csv`;
 
 const RaceLeaderboard = () => {
-  const [raceData, setRaceData] = useState<any>(null);
+  const [raceData, setRaceData] = useState<RaceData | null>(null);
   const [leaderboardData, setLeaderboardData] = useState<Driver[]>([]);
   const [previousPositions, setPreviousPositions] = useState<{
     [key: string]: number;
@@ -45,7 +46,17 @@ const RaceLeaderboard = () => {
         });
         const raceMetadata = await fetchCSVData(RACE_METADATA_URL);
         if (raceMetadata && raceMetadata.length > 0) {
-          setRaceData(raceMetadata[0]);
+          const metadataObj = raceMetadata[0];
+          const raceDataObj: RaceData = {
+            flag_state: metadataObj.flag_state,
+            run_name: metadataObj.run_name,
+            series_id: metadataObj.series_id,
+            track_name: metadataObj.track_name,
+            lap_number: metadataObj.lap_number,
+            laps_in_race: metadataObj.laps_in_race,
+            time_of_day_os: metadataObj.time_of_day_os,
+          };
+          setRaceData(raceDataObj);
         }
         const leaderboard = await fetchCSVData(LEADERBOARD_URL);
         if (leaderboard && leaderboard.length > 0) {
