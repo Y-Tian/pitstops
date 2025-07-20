@@ -12,10 +12,10 @@ export const parseCSV = (csvText: string) => {
 };
 
 export const getManufacturerLogo = (manufacturer: string | number) => {
-  const logos: Record<"Chv" | "Frd" | "Toy", string> = {
-    Chv: "🏁",
+  const logos: Record<"Chv" | "Frd" | "Tyt", string> = {
+    Chv: "🚕",
     Frd: "🚗",
-    Toy: "🏎️",
+    Tyt: "🚙",
   };
   const key = String(manufacturer) as keyof typeof logos;
   return logos[key] ?? "🏁";
