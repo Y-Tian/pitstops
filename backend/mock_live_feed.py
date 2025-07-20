@@ -2,7 +2,7 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 import random
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)
