@@ -1,12 +1,11 @@
-import requests
 import json
 import sys
 import os
 import csv
 import io
 from datetime import datetime
-import base64
-import hashlib
+import boto3
+import urllib3
 
 class LiveFeedToR2:
     def __init__(self, live_feed_url, r2_config):
@@ -24,6 +23,10 @@ class LiveFeedToR2:
             'Authorization': f"Bearer {r2_config['api_token']}",
             'Content-Type': 'application/octet-stream'
         }
+        
+        # Initialize urllib3 PoolManager
+        self.http = urllib3.PoolManager()
+        
         self.verify_connection()
     
     def verify_connection(self):
@@ -36,11 +39,12 @@ class LiveFeedToR2:
                 'Content-Type': 'application/json'
             }
             
-            response = requests.get(test_url, headers=test_headers, timeout=10)
-            if response.status_code == 200:
+            response = self.http.request('GET', test_url, headers=test_headers, timeout=10)
+            
+            if response.status == 200:
                 print("R2 API connection verified successfully")
             else:
-                print(f"R2 API connection warning: {response.status_code} - {response.text}")
+                print(f"R2 API connection warning: {response.status} - {response.data.decode('utf-8')}")
                 print("Proceeding anyway - this might be due to limited permissions")
             
         except Exception as e:
@@ -50,10 +54,15 @@ class LiveFeedToR2:
     def fetch_live_feed(self):
         """Fetch data from the live feed endpoint"""
         try:
-            response = requests.get(self.live_feed_url, timeout=30)
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.RequestException as e:
+            response = self.http.request('GET', self.live_feed_url, timeout=30)
+            
+            if response.status == 200:
+                return json.loads(response.data.decode('utf-8'))
+            else:
+                print(f"Error fetching live feed: HTTP {response.status}")
+                return None
+                
+        except Exception as e:
             print(f"Error fetching live feed: {e}")
             return None
     
@@ -95,18 +104,19 @@ class LiveFeedToR2:
                 content_bytes = content
             
             # Upload to R2
-            response = requests.put(
+            response = self.http.request(
+                'PUT',
                 url,
-                data=content_bytes,
+                body=content_bytes,
                 headers=upload_headers,
                 timeout=60
             )
             
-            if response.status_code in [200, 201]:
+            if response.status in [200, 201]:
                 print(f"Successfully uploaded {filename} to R2")
                 return True
             else:
-                print(f"Error uploading {filename} to R2: {response.status_code} - {response.text}")
+                print(f"Error uploading {filename} to R2: {response.status} - {response.data.decode('utf-8')}")
                 return False
                 
         except Exception as e:
@@ -235,8 +245,8 @@ class LiveFeedToR2:
             url = f"{self.base_url}/{filename}"
             
             # Use HEAD request to check if file exists
-            response = requests.head(url, headers=self.headers, timeout=10)
-            return response.status_code == 200
+            response = self.http.request('HEAD', url, headers=self.headers, timeout=10)
+            return response.status == 200
             
         except Exception as e:
             print(f"Error checking if {filename} exists: {e}")
@@ -302,49 +312,34 @@ class LiveFeedToR2:
             return 1  # Error exit code
 
 
-def main():
+def lambda_handler(event, context):
     """Main function to run the live feed to R2 updater"""
     
     # Configuration - set via environment variables
     LIVE_FEED_URL = os.getenv('LIVE_FEED_URL', 'https://cf.nascar.com/live/feeds/live-feed.json')
     
+    # Initialize SSM client
+    ssm = boto3.client('ssm')
+    
+    PARAMETER_STORE_KEY_NAME = os.getenv('PARAMETER_STORE_KEY_NAME')
+    
+    # Retrieve API key from Parameter Store
+    response = ssm.get_parameter(
+        Name=PARAMETER_STORE_KEY_NAME,
+        WithDecryption=False
+    )
+    
+    api_key = response['Parameter']['Value']
+
     # R2 Configuration using Cloudflare API
     R2_CONFIG = {
         'account_id': os.getenv('CLOUDFLARE_ACCOUNT_ID'),
-        'api_token': os.getenv('CLOUDFLARE_API_TOKEN'),
+        'api_token': api_key,
         'bucket': os.getenv('R2_BUCKET_NAME', 'nascar-live-feed'),
         'custom_domain': os.getenv('R2_CUSTOM_DOMAIN')  # Optional
     }
     
-    # Validate configuration
-    required_vars = ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN']
-    missing_vars = [var for var in required_vars if not os.getenv(var)]
-    
-    if missing_vars:
-        print(f"Error: Missing required environment variables: {', '.join(missing_vars)}")
-        print("Set the following environment variables:")
-        print("- CLOUDFLARE_ACCOUNT_ID: Your Cloudflare account ID")
-        print("- CLOUDFLARE_API_TOKEN: Your Cloudflare API token with R2 permissions")
-        print("- R2_BUCKET_NAME: Your R2 bucket name (optional, defaults to 'nascar-live-feed')")
-        print("- R2_CUSTOM_DOMAIN: Custom domain for R2 (optional)")
-        print("\nTo create an API token:")
-        print("1. Go to https://dash.cloudflare.com/profile/api-tokens")
-        print("2. Click 'Create Token'")
-        print("3. Use 'Custom token' template")
-        print("4. Add permissions: Account - Cloudflare R2:Edit")
-        print("5. Add account resources: Include - Your Account")
-        sys.exit(1)
-    
-    try:
-        # Create instance and run once
-        updater = LiveFeedToR2(LIVE_FEED_URL, R2_CONFIG)
-        exit_code = updater.run_once()
-        sys.exit(exit_code)
-        
-    except Exception as e:
-        print(f"Fatal error: {e}")
-        sys.exit(1)
+    # Create instance and run once
+    updater = LiveFeedToR2(LIVE_FEED_URL, R2_CONFIG)
+    updater.run_once()
 
-
-if __name__ == "__main__":
-    main()
