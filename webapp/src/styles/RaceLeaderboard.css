@@ -116,7 +116,7 @@
 
 /* Leaderboard styles */
 .leaderboard-container {
-  width: 100vw;
+  width: 100%;
   padding: 0;
   box-sizing: border-box;
 }
@@ -151,9 +151,9 @@
   grid-template-columns: 1fr 1fr 1.5fr 3fr 1.2fr 1.2fr 1fr;
   gap: 1.5vw;
   align-items: center;
-  padding: 1.2vw 2vw;
+  padding: 0;
   border-bottom: 1px solid #333;
-  width: 100vw;
+  width: 100%;
 }
 
 /* Position styles */
