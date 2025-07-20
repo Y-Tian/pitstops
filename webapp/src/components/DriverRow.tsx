@@ -17,7 +17,6 @@ interface DriverRowProps {
 
 const DriverRow = ({ driver, previousPosition, seriesId }: DriverRowProps) => {
   const positionChange = getPositionChange(
-    driver.driver_id,
     parseInt(driver.running_position),
     previousPosition,
   );
