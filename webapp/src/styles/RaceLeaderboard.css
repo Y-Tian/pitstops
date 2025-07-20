@@ -62,19 +62,25 @@
 /* Header styles */
 .header {
   background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
-  padding: 20px 0;
+  padding: 0;
   border-bottom: 2px solid #3b82f6;
+  max-width: 1600px;
+  margin: 0 auto;
 }
 
 .header-container {
-  width: 100%;
-  padding: 0 20px;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 0 2vw;
 }
 
 .header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 1.2vw 0;
 }
 
 .title-section {
