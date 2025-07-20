@@ -14,13 +14,13 @@ const LeaderboardGrid = ({
     <div className="leaderboard">
       <div className="leaderboard-header">
         <div className="grid-header">
-          <div>POS</div>
-          <div>CHG</div>
-          <div>CAR</div>
-          <div>DRIVER</div>
-          <div>LAST LAP</div>
-          <div>DELTA</div>
-          <div>STATUS</div>
+          <div>Position</div>
+          <div>Change</div>
+          <div>Car</div>
+          <div>Driver</div>
+          <div>Last Lap Time</div>
+          <div>Delta</div>
+          <div>Status</div>
         </div>
       </div>
       <div>
