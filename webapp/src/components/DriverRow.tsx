@@ -97,15 +97,15 @@ const DriverRow = ({ driver, previousPosition }: DriverRowProps) => {
               </div>
             </div>
           </div>
-          {driver.is_on_dvp === "TRUE" && <span className="dvp-tag">DVP</span>}
+          {driver.is_on_dvp === "True" && <span className="dvp-tag">DVP</span>}
         </div>
         <div className="lap-time">{formatTime(driver.last_lap_time)}s</div>
         <div className={`delta ${deltaClass}`}>{formatDelta(driver.delta)}</div>
         <div>
           <span
-            className={`track-status ${driver.is_on_track === "TRUE" ? "status-on" : "status-off"}`}
+            className={`track-status ${driver.is_on_track === "True" ? "status-on" : "status-off"}`}
           >
-            {driver.is_on_track === "TRUE" ? "ON" : "OFF"}
+            {driver.is_on_track === "True" ? "ON" : "OFF"}
           </span>
         </div>
       </div>

@@ -9,5 +9,4 @@ export type Driver = {
   delta: string;
   is_on_dvp: string;
   is_on_track: string;
-  [key: string]: unknown;
 };
