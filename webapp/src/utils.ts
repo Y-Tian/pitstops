@@ -19,7 +19,6 @@ export const getManufacturerLogoUrl = (
 };
 
 export const getPositionChange = (
-  driverId: string | number,
   currentPosition: number,
   previousPosition?: number,
 ) => {
