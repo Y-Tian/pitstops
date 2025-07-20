@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Trophy, Flag, Car, Clock, AlertCircle } from "lucide-react";
 import "./styles/RaceLeaderboard.css";
+import { useCallback } from "react";
 
 const RaceLeaderboard = () => {
   type Driver = {
@@ -43,7 +44,7 @@ const RaceLeaderboard = () => {
     });
   };
 
-  const fetchCSVData = async (url: RequestInfo | URL) => {
+  const fetchCSVData = useCallback(async (url: RequestInfo | URL) => {
     try {
       const response = await fetch(url);
       if (!response.ok) {
@@ -55,7 +56,7 @@ const RaceLeaderboard = () => {
       console.error("Error fetching CSV data:", error);
       return null;
     }
-  };
+  }, []);
 
   const getManufacturerLogo = (manufacturer: string | number) => {
     const logos: Record<"Chv" | "Frd" | "Toy", string> = {
