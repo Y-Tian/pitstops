@@ -2,22 +2,36 @@ import React, { useState, useEffect } from 'react';
 import { Trophy, Flag, Car, Clock, AlertCircle } from 'lucide-react';
 
 const RaceLeaderboard = () => {
-  const [raceData, setRaceData] = useState(null);
-  const [leaderboardData, setLeaderboardData] = useState([]);
-  const [previousPositions, setPreviousPositions] = useState({});
+  type Driver = {
+    driver_id: string;
+    running_position: string;
+    vehicle_manufacturer: string;
+    vehicle_number: string;
+    full_name: string;
+    starting_position: string;
+    last_lap_time: string;
+    delta: string;
+    is_on_dvp: string;
+    is_on_track: string;
+    [key: string]: any;
+  };
+
+  const [raceData, setRaceData] = useState<any>(null);
+  const [leaderboardData, setLeaderboardData] = useState<Driver[]>([]);
+  const [previousPositions, setPreviousPositions] = useState<{ [key: string]: number }>({});
   const [initialLoading, setInitialLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Google Sheets CSV endpoints
   const RACE_METADATA_URL = 'https://pub-b7783bd311854f5d831d46eaa8eb5a93.r2.dev/race_metadata.csv';
   const LEADERBOARD_URL = 'https://pub-b7783bd311854f5d831d46eaa8eb5a93.r2.dev/leaderboard.csv';
 
-  const parseCSV = (csvText) => {
+  const parseCSV = (csvText: string) => {
     const lines = csvText.trim().split('\n');
     const headers = lines[0].split(',');
     return lines.slice(1).map(line => {
       const values = line.split(',');
-      const obj = {};
+      const obj: { [key: string]: string } = {};
       headers.forEach((header, index) => {
         obj[header.trim()] = values[index]?.trim() || '';
       });
@@ -25,7 +39,7 @@ const RaceLeaderboard = () => {
     });
   };
 
-  const fetchCSVData = async (url) => {
+  const fetchCSVData = async (url: RequestInfo | URL) => {
     try {
       const response = await fetch(url);
       if (!response.ok) {
@@ -39,44 +53,46 @@ const RaceLeaderboard = () => {
     }
   };
 
-  const getManufacturerLogo = (manufacturer) => {
-    const logos = {
+  const getManufacturerLogo = (manufacturer: string | number) => {
+    const logos: Record<'Chv' | 'Frd' | 'Toy', string> = {
       'Chv': '🏁', // Chevrolet
       'Frd': '🚗', // Ford
       'Toy': '🏎️'  // Toyota
     };
-    return logos[manufacturer] || '🏁';
+    const key = String(manufacturer) as keyof typeof logos;
+    return logos[key] ?? '🏁';
   };
 
-  const getFlagState = (flagState) => {
-    const flags = {
+  const getFlagState = (flagState: string | number) => {
+    const flags: Record<'1' | '2' | '3' | '4', { emoji: string; text: string }> = {
       '1': { emoji: '🟢', text: 'Green Flag' },
       '2': { emoji: '🟡', text: 'Yellow Flag' },
       '3': { emoji: '🔴', text: 'Red Flag' },
       '4': { emoji: '🏁', text: 'Checkered Flag' }
     };
-    return flags[flagState] || { emoji: '🏁', text: 'Racing' };
+    const key = String(flagState) as keyof typeof flags;
+    return flags[key] ?? { emoji: '🏁', text: 'Racing' };
   };
 
-  const getPositionChange = (driverId, currentPosition) => {
+  const getPositionChange = (driverId: string | number, currentPosition: number) => {
     const previousPosition = previousPositions[driverId];
     if (previousPosition === undefined) return 0;
     return previousPosition - currentPosition;
   };
 
-  const getPositionChangeClass = (change) => {
+  const getPositionChangeClass = (change: number) => {
     if (change > 0) return 'change-up';
     if (change < 0) return 'change-down';
     return 'change-none';
   };
 
-  const getPositionChangeIcon = (change) => {
+  const getPositionChangeIcon = (change: number) => {
     if (change > 0) return '↗️';
     if (change < 0) return '↘️';
     return '→';
   };
 
-  const getPositionClass = (position) => {
+  const getPositionClass = (position: number) => {
     if (position === 1) return 'position-1';
     if (position === 2) return 'position-2';
     if (position === 3) return 'position-3';
@@ -84,7 +100,7 @@ const RaceLeaderboard = () => {
     return '';
   };
 
-  const getPositionTextClass = (position) => {
+  const getPositionTextClass = (position: number) => {
     if (position === 1) return 'position-1-text';
     if (position === 2) return 'position-2-text';
     if (position === 3) return 'position-3-text';
@@ -92,10 +108,12 @@ const RaceLeaderboard = () => {
     return '';
   };
 
-  const getDeltaClass = (delta) => {
-    if (delta === '0') return 'delta-leader';
-    if (parseFloat(delta) > 0) return 'delta-behind';
-    return 'delta-ahead';
+  const getDeltaClass = (delta: string) => {
+    const deltaNum = parseFloat(delta);
+    if (deltaNum === 0) return 'delta-leader';
+    if (deltaNum > 0) return 'delta-behind';
+    if (deltaNum < 0) return 'delta-ahead';
+    return '';
   };
 
   useEffect(() => {
@@ -104,7 +122,7 @@ const RaceLeaderboard = () => {
         setError(null);
         
         // Store current positions before fetching new data
-        const currentPositions = {};
+        const currentPositions: { [key: string]: number } = {};
         leaderboardData.forEach(driver => {
           currentPositions[driver.driver_id] = parseInt(driver.running_position);
         });
@@ -122,9 +140,11 @@ const RaceLeaderboard = () => {
           setPreviousPositions(currentPositions);
           
           // Sort leaderboard by running position
-          const sortedLeaderboard = leaderboard.sort((a, b) => 
-            parseInt(a.running_position) - parseInt(b.running_position)
-          );
+          const sortedLeaderboard = leaderboard
+            .map(d => d as Driver)
+            .sort((a, b) => 
+              parseInt(a.running_position) - parseInt(b.running_position)
+            );
           
           setLeaderboardData(sortedLeaderboard);
         }
@@ -143,11 +163,11 @@ const RaceLeaderboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const formatTime = (timeString) => {
+  const formatTime = (timeString: string) => {
     return parseFloat(timeString).toFixed(3);
   };
 
-  const formatDelta = (delta) => {
+  const formatDelta = (delta: string) => {
     const deltaNum = parseFloat(delta);
     if (deltaNum === 0) return 'Leader';
     return deltaNum > 0 ? `+${deltaNum.toFixed(1)}` : `${deltaNum.toFixed(1)}`;
@@ -235,7 +255,7 @@ const RaceLeaderboard = () => {
       color: 'white',
       fontFamily: 'system-ui, -apple-system, sans-serif'
     }}>
-      <style jsx>{`
+      <style>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
