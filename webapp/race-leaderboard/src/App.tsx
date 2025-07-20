@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Trophy, Flag, Car, Clock, AlertCircle } from 'lucide-react';
 
 const RaceLeaderboard = () => {
@@ -97,14 +97,6 @@ const RaceLeaderboard = () => {
     if (position === 2) return 'position-2';
     if (position === 3) return 'position-3';
     if (position <= 10) return 'position-top10';
-    return '';
-  };
-
-  const getPositionTextClass = (position: number) => {
-    if (position === 1) return 'position-1-text';
-    if (position === 2) return 'position-2-text';
-    if (position === 3) return 'position-3-text';
-    if (position <= 10) return 'position-top10-text';
     return '';
   };
 
@@ -450,13 +442,12 @@ const RaceLeaderboard = () => {
 
           {/* Leaderboard rows */}
           <div>
-            {leaderboardData.map((driver, index) => {
+            {leaderboardData.map((driver) => {
               const positionChange = getPositionChange(driver.driver_id, parseInt(driver.running_position));
               const changeClass = getPositionChangeClass(positionChange);
               const changeIcon = getPositionChangeIcon(positionChange);
               const position = parseInt(driver.running_position);
               const positionClass = getPositionClass(position);
-              const positionTextClass = getPositionTextClass(position);
               const deltaClass = getDeltaClass(driver.delta);
               
               return (
