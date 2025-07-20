@@ -51,7 +51,13 @@ const DriverRow = ({ driver, previousPosition }: DriverRowProps) => {
           <div>
             <div className="car-number">{driver.vehicle_number}</div>
             <div className="manufacturer-name">
-              {driver.vehicle_manufacturer}
+              {driver.vehicle_manufacturer === "Tyt"
+                ? "Toyota"
+                : driver.vehicle_manufacturer === "Chv"
+                  ? "Chevrolet"
+                  : driver.vehicle_manufacturer === "Frd"
+                    ? "Ford"
+                    : driver.vehicle_manufacturer}
             </div>
           </div>
         </div>
