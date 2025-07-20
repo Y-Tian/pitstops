@@ -107,7 +107,7 @@ const RaceLeaderboard = () => {
     const deltaNum = parseFloat(delta);
     if (deltaNum === 0) return "delta-leader";
     if (deltaNum > 0) return "delta-behind";
-    if (deltaNum < 0) return "delta-ahead";
+    if (deltaNum < 0) return "delta-lapped";
     return "";
   };
 
@@ -170,7 +170,8 @@ const RaceLeaderboard = () => {
   const formatDelta = (delta: string) => {
     const deltaNum = parseFloat(delta);
     if (deltaNum === 0) return "Leader";
-    return deltaNum > 0 ? `+${deltaNum.toFixed(1)}` : `${deltaNum.toFixed(1)}`;
+    if (deltaNum < 0) return `-${Math.abs(Math.round(deltaNum))} lap`;
+    return `+${deltaNum.toFixed(1)}`;
   };
 
   if (initialLoading) {

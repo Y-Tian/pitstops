@@ -304,7 +304,7 @@
 
 /* Delta indicators */
 .delta-leader {
-  color: #ffd700;
+  color: #2bbc3e;
   font-weight: 600;
 }
 
@@ -312,8 +312,8 @@
   color: #ef4444;
 }
 
-.delta-ahead {
-  color: #22c55e;
+.delta-lapped {
+  color: #ef4444;
 }
 
 /* Tooltip */
